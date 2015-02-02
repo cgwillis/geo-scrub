@@ -18,43 +18,12 @@ library(doParallel)
 drv <- dbDriver('PostgreSQL')
 
 # Read State and Province Shape files
-# US State shapefile from Census Bureau https://www.census.gov/geo/maps-data/data/tiger.html
-stat = readShapePoly('~/Google Drive/Research/general data/North America Shape Files/cb_2013_us_state_500k.shp')
-# Canadian Province shapefile from NOAA http://www.nws.noaa.gov/geodata/catalog/national/html/province.htm
-prov = readShapePoly('~/Google Drive/Research/general data/North America Shape Files/PROVINCE.SHP')
-# Mexico Shapfile
-mexi = readShapePoly('~/Google Drive/Research/general data/North America Shape Files/MEX_adm0.shp')
+# North American shapefile with US States, Canadian Provinces and Mexico  from GADM gadm.org
+na.map = readShapePoly('~/Google Drive/Research/general data/North America Shape Files/gadm/North America/NorthAmerica.shp')
 
-# Fix FIPS codes in US and Canada Shapefiles
-# fix state FIPS codes
-stat.fips = stat$STATEFP
-stat.fips = paste('US',as.character(stat.fips),sep='')
-stat$STATEFP = stat.fips
-
-# fix Canada
-# changes FIPS code for Nunavut (CA13 -> CA14)
-# changes FIPS code for Northwest Territories (CA06 -> CA13)
-prov$CODE = c('CA01','CA11','CA03','CA05','CA09','CA07','CA13','CA14','CA08','CA04','CA12','CA02','CA10')
-
-#Edit Shapefiles so they can be combined
-stat = stat[,-(2:5)] #removes columns 2 through 5
-stat = stat[,-(3:5)] #removes last 3 columns
-names(stat) = c('FIPS','NAME') #remains columns to match province shapefiles
-row.names(stat) = stat$FIPS
-names(prov) = c('FIPS','NAME') #remains columns to match state shapefiles
-row.names(prov) = prov$FIPS
-mexi = mexi[,-(21:70)]
-mexi = mexi[,-(1:18)]
-names(mexi) = c('FIPS','NAME')
-mexi$FIPS = "MX"
-mexi$NAME = "Mexico"
-
-# Combine Shapefiles
-na.map = spRbind(stat,prov)
-na.map = spRbind(na.map,mexi)
-# Remove territories / states that are not part of NA continent
-# Puerto Rico, United States Virgin Islands, Commonwealth of the Northern Mariana Islands, Guam, American Samoa, Hawaii
-na.map = na.map[!(na.map$NAME %in% c('Puerto Rico', 'United States Virgin Islands', 'Commonwealth of the Northern Mariana Islands', 'Guam', 'American Samoa', 'Hawaii')),]
+# Add FIPS codes to Shapefiles
+fips = read.delim('~/Google Drive/Research/general data/North America Shape Files/gadm/North America/fips.txt')
+na.map$fips = fips$FIPS
 
 # Upload USDA State/Province database
 # Created using usda.py script (B. Frazone)
