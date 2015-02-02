@@ -23,7 +23,7 @@ na.map = readShapePoly('~/Google Drive/Research/general data/North America Shape
 
 # Add FIPS codes to Shapefiles
 fips = read.delim('~/Google Drive/Research/general data/North America Shape Files/gadm/North America/fips.txt')
-na.map$fips = fips$FIPS
+na.map$FIPS = fips$FIPS
 
 # Upload USDA State/Province database
 # Created using usda.py script (B. Frazone)
@@ -100,7 +100,7 @@ if(length(bien.dat) == 0) {
   sub.list = subset(usda.list, usda.list %in% na.map$FIPS)
   sub.list = as.character(sub.list)
   # Adds Mexico to list
-  sub.list = c(sub.list,'MX')
+  sub.list = c(sub.list,'MX00')
   # Create map with
   sub.map = na.map[which(na.map$FIPS %in% sub.list),]
 
