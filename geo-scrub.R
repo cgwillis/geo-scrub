@@ -19,10 +19,10 @@ drv <- dbDriver('PostgreSQL')
 
 # Read State and Province Shape files
 # North American shapefile with US States, Canadian Provinces and Mexico  from GADM gadm.org
-na.map = readShapePoly('~/Google Drive/Research/general data/North America Shape Files/gadm/North America/NorthAmerica.shp')
+na.map = readShapePoly('~/Google Drive/Research/general data/North America Shape Files/gadm/North America/NorthAmerica.with.states.shp')
 
 # Add FIPS codes to Shapefiles
-fips = read.delim('~/Google Drive/Research/general data/North America Shape Files/gadm/North America/fips.txt')
+fips = read.csv('~/Google Drive/Research/general data/North America Shape Files/gadm/North America/fips.csv')
 na.map$FIPS = fips$FIPS
 
 # Upload USDA State/Province database
@@ -76,9 +76,7 @@ foreach(i = 1:length(taxa$AcceptedName),.packages=c('maptools','sp','rgdal','map
 # If there is not data for the species skip following steps
 
 if(length(bien.dat) == 0) {
-
-  write.table(cbind(taxa$AcceptedName[[i]],'no data',0,date()),file='taxa.ouput.txt',row.names=FALSE,col.names=FALSE,quote=FALSE,append=TRUE,sep=',')
-
+write.table(cbind(taxa$AcceptedName[[i]],'no data',0,date()),file='taxa.ouput.txt',row.names=FALSE,col.names=FALSE,quote=FALSE,append=TRUE,sep=',')
   } else {
 
   # Reformat GBIF and BISON data and combined datasets
@@ -86,8 +84,8 @@ if(length(bien.dat) == 0) {
   #names(gbf.edit) = c('taxa','lon','lat','original.source','ID','database')
   #bis.edit = as.data.frame(cbind(bis.dat$points$name,bis.dat$points$decimalLongitude,bis.dat$points$decimalLatitude,bis.dat$points$provider,bis.dat$points$occurrenceID,'bison'))
   #names(bis.edit) = c('taxa','lon','lat','original.source','ID','database')
-  bien.edit = subset(bien.dat,!is.na(longitude)&!is.na(latitude),c(scrubbed_taxon_name_no_author,longitude,latitude))
-  names(bien.edit) = c('taxa','lon','lat')
+  bien.edit = subset(bien.dat,!is.na(longitude)&!is.na(latitude),c(scrubbed_taxon_name_no_author,scrubbed_species_binomial,longitude,latitude,date_collected))
+  names(bien.edit) = c('taxa','full.name','lon','lat','date')
 
   # Possible option to combined GBIF and BISON data
   #geo.dat = rbind(gbf.edit,bis.edit)
@@ -105,40 +103,43 @@ if(length(bien.dat) == 0) {
   sub.map = na.map[which(na.map$FIPS %in% sub.list),]
 
   # Subset points by sub.map for BIEN3 data
-  lonlat = as.data.frame(cbind(as.numeric(as.character(bien.edit$lon)),as.numeric(as.character(bien.edit$lat))))
-  names(lonlat) = c('longitude','latitude')
-  lonlat = subset(lonlat,!is.na(longitude)&!is.na(latitude))
+  bien.edit$lon = as.numeric(as.character(bien.edit$lon))
+  bien.edit$lat = as.numeric(as.character(bien.edit$lat))
+
+  # Converts date to date variable
+  # Removes records with missing lat / lon data
+  bien.edit$date = as.Date(bien.edit$date)
+  bien.edit = subset(bien.edit,!is.na(lon)&!is.na(lat))
 
   # If there is not geo-referenced data for the species, skip the remaining steps
 
-  if(length(lonlat$longitude)==0) {
-
+  if(length(bien.edit$lon)==0) {
   write.table(cbind(taxa$AcceptedName[[i]],'no data',0,date()),file='taxa.ouput.txt',row.names=FALSE,col.names=FALSE,quote=FALSE,append=TRUE,sep=',')
-
     } else {
 
-  coordinates(lonlat) = c('longitude','latitude')
+  coordinates(bien.edit) = c('lon','lat')
   # Tell R that bear coordinates are in the same lat/lon reference system
-  proj4string(lonlat) = proj4string(sub.map)
+  proj4string(bien.edit) = proj4string(sub.map)
 
   # Combine is.na() with over() to do the containment test; note that we
   # Need to "demote" parks to a SpatialPolygons object first
-  overlap = !is.na(over(lonlat, as(sub.map, 'SpatialPolygons')))
+  overlap = !is.na(over(bien.edit, as(sub.map, 'SpatialPolygons')))
 
   # If there is no overlap between geo-referenced data and USDA skip remaining steps
 
   if(length(overlap[overlap==T]) == 0) {
-    write.table(cbind(taxa$AcceptedName[[i]],'no data',0,date()),file='taxa.ouput.txt',row.names=FALSE,col.names=FALSE,quote=FALSE,append=TRUE,sep=',')
+  write.table(cbind(taxa$AcceptedName[[i]],'no data',0,date()),file='taxa.ouput.txt',row.names=FALSE,col.names=FALSE,quote=FALSE,append=TRUE,sep=',')
   } else {
 
   # If the geo-referenced data does overlap with USDA data write shapefile
-    filtered.points = lonlat[overlap, ]
+    filtered.points = bien.edit[overlap, ]
     df = as.data.frame(filtered.points)
     fp = SpatialPointsDataFrame(filtered.points,df)
 
     write.table(cbind(taxa$AcceptedName[[i]],'data',length(filtered.points),date()),file='taxa.ouput.txt',row.names=FALSE,col.names=FALSE,quote=FALSE,append=TRUE,sep=',')
     # Write filtered shapefile
     writePointsShape(fp, paste(taxa$AcceptedGenus[[i]],'_',taxa$AcceptedSpecies[[i]],'.bien3',sep=''))
+
       }
     }
   }
