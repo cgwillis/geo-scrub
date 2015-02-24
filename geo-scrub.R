@@ -71,7 +71,7 @@ foreach(i = 1:length(taxa$AcceptedName),.packages=c('maptools','sp','rgdal','map
   bien.dat <- try(dbGetQuery(con, paste('SELECT * FROM view_full_occurrence_individual WHERE scrubbed_species_binomial = ','\'',taxa$AcceptedName[[i]],'\'',sep='')),silent=T)
   dbDisconnect(con) #closes psql connection so as not to hit limit of connections
   #Save raw BIEN3 data by species
-  write.table(bien.dat,file=paste(taxa$AcceptedGenus[[i]],'_',taxa$AcceptedSpecies[[i]],'.bien3.raw.txt',sep=''))
+  write.table(bien.dat,file=paste(taxa$AcceptedGenus[[i]],'_',taxa$AcceptedSpecies[[i]],'.raw.txt',sep=''))
 
 # If there is not data for the species skip following steps
 
@@ -138,7 +138,7 @@ write.table(cbind(taxa$AcceptedName[[i]],'no data',0,date()),file='taxa.ouput.tx
 
     write.table(cbind(taxa$AcceptedName[[i]],'data',length(filtered.points),date()),file='taxa.ouput.txt',row.names=FALSE,col.names=FALSE,quote=FALSE,append=TRUE,sep=',')
     # Write filtered shapefile
-    writePointsShape(fp, paste(taxa$AcceptedGenus[[i]],'_',taxa$AcceptedSpecies[[i]],'.bien3',sep=''))
+    writePointsShape(fp, paste(taxa$AcceptedGenus[[i]],'_',taxa$AcceptedSpecies[[i]],sep=''))
 
       }
     }
